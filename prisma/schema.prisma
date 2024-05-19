@@ -1,0 +1,63 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url = env("DATABASE_URL")
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  email String @unique
+  name String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+  keywords UserKeyword[]
+  newBooks UserNewPublicationBook[]
+}
+
+model UserKeyword {
+  id Int @id @default(autoincrement())
+  userId Int
+  type Int
+  keyword String
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
+}
+
+model UserNewPublicationBook {
+  id Int @id @default(autoincrement())
+  userId Int
+  month String
+  bookId Int
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
+  book Book @relation(fields: [bookId], references: [id])
+}
+
+model Book {
+  id Int @id @default(autoincrement())
+  title String
+  titleFurigana String
+  subtitle String
+  subtitleFurigana String
+  seriesName String
+  seriesNameFurigana String
+  authorName String
+  authorNameFurigana String
+  publisherName String
+  size String
+  isbn String
+  caption String
+  salesDate DateTime
+  salesDateText String
+  price Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+  users UserNewPublicationBook[]
+}
