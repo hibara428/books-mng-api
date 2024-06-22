@@ -17,20 +17,29 @@ model User {
   name String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
-  keywords UserKeyword[]
-  newBooks UserNewPublicationBook[]
+  userSearchConditions UserSearchCondition[]
+  userBooks UserBook[]
 }
 
-model UserKeyword {
+model SearchCondition {
   id Int @id @default(autoincrement())
-  userId Int
   type Int
   keyword String
   createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id])
+  userSearchConditions UserSearchCondition[]
+  bookSearchQueues BookSearchQueue[]
 }
 
-model UserNewPublicationBook {
+model UserSearchCondition {
+  id Int @id @default(autoincrement())
+  userId Int
+  searchConditionId Int
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
+  searchCondition SearchCondition @relation(fields: [searchConditionId], references: [id])
+}
+
+model UserBook {
   id Int @id @default(autoincrement())
   userId Int
   month String
@@ -59,5 +68,13 @@ model Book {
   price Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
-  users UserNewPublicationBook[]
+  userBooks UserBook[]
+}
+
+model BookSearchQueue {
+  id Int @id @default(autoincrement())
+  searchConditionId Int
+  startDate DateTime
+  createdAt DateTime @default(now())
+  searchCondition SearchCondition @relation(fields: [searchConditionId], references: [id])
 }

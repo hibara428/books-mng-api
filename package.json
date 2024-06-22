@@ -10,8 +10,10 @@
         "seed": "ts-node prisma/seed.ts"
     },
     "dependencies": {
+        "@formkit/tempo": "^0.1.1",
         "@prisma/adapter-d1": "^5.14.0",
         "@prisma/client": "^5.14.0",
+        "axios": "^1.7.2",
         "hono": "^3.0.2"
     },
     "devDependencies": {
