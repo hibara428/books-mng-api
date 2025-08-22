@@ -1,4 +1,6 @@
-import { Book, Prisma, PrismaClient } from '@prisma/client';
+import { Book, Prisma, PrismaClient, SearchCondition } from '@prisma/client';
+import { RakutenSearchItem, RakutenSearchQueries } from '../types';
+import RakutenBooksApi, { convertResponseItemToBook } from '../libs/RakutenBooksApi';
 
 /**
  * NOTE: Can't use update because ISBN is "NOT" unique.
@@ -48,24 +50,35 @@ export const findBooks = async (prisma: PrismaClient, bookData: Prisma.BookCreat
     });
 };
 
-export const convertRakutenApiResponse = async (response: any): Promise<Prisma.BookCreateInput[]> => {
-    return [
-        {
-            title: 'タイトル１',
-            titleFurigana: 'たいとるいち',
-            subtitle: 'サブタイトルだよ',
-            subtitleFurigana: 'さぶたいとるだよ',
-            seriesName: 'シリーズ',
-            seriesNameFurigana: 'しりーず',
-            authorName: '著者名',
-            authorNameFurigana: 'ちょしゃめい',
-            publisherName: '出版社A',
-            size: 'B5',
-            isbn: 'BTDFJR3980',
-            caption: 'キャプションです',
-            salesDate: Date(),
-            salesDateText: '今日',
-            price: 1000,
-        },
-    ];
+/**
+ * Search books after limitDate.
+ *
+ * @param api
+ * @param queries
+ * @param limitDate
+ * @returns
+ */
+export const searchBooksAfterDate = async (
+    api: RakutenBooksApi,
+    searchCondition: SearchCondition,
+    limitDate: Date
+): Promise<Prisma.BookCreateInput[]> => {
+    const queries: RakutenSearchQueries = {
+        sort: '-releaseDate',
+    };
+    if (searchCondition.type === 0) {
+        queries.title = searchCondition.keyword;
+    } else {
+        queries.author = searchCondition.keyword;
+    }
+
+    // TODO: limitDate以前のデータまで再起的に取得する
+
+    const data = await api.search(queries, 1);
+    const books = data.Items.map((item) => convertResponseItemToBook(item.Item)).filter((book) => book.salesDate <= limitDate);
+    if (books.length <= 0) {
+        return [];
+    }
+
+    return books;
 };

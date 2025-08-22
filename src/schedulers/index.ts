@@ -3,7 +3,7 @@ import { PrismaD1 } from '@prisma/adapter-d1';
 import { Env } from '../types';
 import { createUserBooks } from '../services/user';
 import RakutenBooksApi from '../libs/RakutenBooksApi';
-import { convertRakutenApiResponse, upsertBook } from '../services/book';
+import { searchBooksAfterDate, upsertBook } from '../services/book';
 import { addDay, format } from '@formkit/tempo';
 
 export const performBookSearchQueue = async (env: Env) => {
@@ -28,19 +28,7 @@ export const performBookSearchQueue = async (env: Env) => {
         const searchCondition = bookSearchQueue.searchCondition;
 
         // Search books with the search condition after startDate.
-        const searchQueries =
-            searchCondition.type === 0
-                ? {
-                      title: searchCondition.keyword,
-                  }
-                : {
-                      author: searchCondition.keyword,
-                  };
-        const response = await api.search(searchQueries, bookSearchQueue.startDate);
-        const bookDataList = await convertRakutenApiResponse(response);
-        if (bookDataList.length <= 0) {
-            throw new Error('No books found.');
-        }
+        const bookDataList = await searchBooksAfterDate(api, searchCondition, bookSearchQueue.startDate);
 
         // Upsert Book records and get new inserted records.
         const newBooks: Book[] = [];
@@ -51,14 +39,19 @@ export const performBookSearchQueue = async (env: Env) => {
             }
         }
 
-        // Insert UserBook records.
+        // Insert UserBook records if new books found.
         if (newBooks.length > 0) {
             for (let userSearchCondition of searchCondition.userSearchConditions) {
                 await createUserBooks(prisma, newBooks, userSearchCondition.userId);
             }
         }
 
-        // Add a next BookSearchQueue record.
+        // Dequeue and Enqueue for next time.
+        await prisma.bookSearchQueue.delete({
+            where: {
+                id: bookSearchQueue.id,
+            },
+        });
         const newBookSearchQueue = await prisma.bookSearchQueue.create({
             data: {
                 searchConditionId: searchCondition.id,
